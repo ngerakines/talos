@@ -8,3 +8,4 @@ edition = "2018"
 iced = { version = "0.2", features = ["tokio", "debug"] }
 rand = "0.7.3"
 rand_distr = "0.3.0"
+itertools = "0.10.0"

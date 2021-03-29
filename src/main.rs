@@ -7,9 +7,21 @@ use iced::{
     Element, HorizontalAlignment, Length, Row, Scrollable, Settings, Subscription, Text,
 };
 
+use rand::rngs::StdRng;
+use rand::{Rng, SeedableRng};
+use rand_distr::{Distribution, Normal, Standard, WeightedIndex};
 use std::time::Instant;
 
 pub fn main() -> iced::Result {
+    let seed: u64 = 42;
+    let mut rng = StdRng::seed_from_u64(seed);
+
+    println!("home {}", home_system());
+    for n in 1..=3 {
+        let system: System = rng.gen();
+        println!("system {} {}", n, system);
+    }
+
     Talos::run(Settings::default())
 }
 

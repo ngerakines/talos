@@ -1,28 +1,16 @@
+mod resource;
+
+use crate::resource::*;
+
 use iced::{
-    button, executor, scrollable, time, Align, Application, Button, Column, Command,
-    Container, Element, HorizontalAlignment, Length, Row, Scrollable, Settings,
-    Subscription, Text,
+    button, executor, scrollable, time, Align, Application, Button, Column, Command, Container,
+    Element, HorizontalAlignment, Length, Row, Scrollable, Settings, Subscription, Text,
 };
 
-use std::fmt;
 use std::time::Instant;
 
 pub fn main() -> iced::Result {
     Talos::run(Settings::default())
-}
-
-#[derive(Debug, Clone, Copy)]
-enum Resource {
-    Ore,
-    Crystal,
-    Energy,
-    Science,
-}
-
-impl fmt::Display for Resource {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
 }
 
 const ORE_HARVEST_RATE: u32 = 1;
@@ -76,13 +64,13 @@ impl Application for Talos {
                 ore_harvest_units: 1,
                 ore_harvest_unit_price: 1,
                 crystal: 0,
-                crystal_harvest_units: 0,
+                crystal_harvest_units: 1,
                 crystal_harvest_unit_price: 1,
                 energy: 0,
-                energy_harvest_units: 0,
+                energy_harvest_units: 1,
                 energy_harvest_unit_price: 1,
                 science: 0,
-                science_harvest_units: 0,
+                science_harvest_units: 1,
                 science_harvest_unit_price: 1,
 
                 ore_harvest_units_incr_button: button::State::default(),
@@ -108,6 +96,9 @@ impl Application for Talos {
         match message {
             Message::Tick(_instant) => {
                 self.ore += self.ore_harvest_units * ORE_HARVEST_RATE;
+                self.crystal += self.crystal_harvest_units * ORE_HARVEST_RATE;
+                self.energy += self.energy_harvest_units * ORE_HARVEST_RATE;
+                self.science += self.science_harvest_units * ORE_HARVEST_RATE;
             }
             Message::IncrementPressed(resource) => match resource {
                 Resource::Ore => {

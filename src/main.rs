@@ -9,7 +9,6 @@ use iced::{
 
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
-use rand_distr::{Distribution, Normal, Standard, WeightedIndex};
 use std::time::Instant;
 
 pub fn main() -> iced::Result {
@@ -227,9 +226,9 @@ impl Application for Talos {
                             .horizontal_alignment(HorizontalAlignment::Center)
                             .size(16),
                     )
-                    .width(Length::Fill)
-                    .padding(8)
-                    .on_press(Message::DecrementPressed(resource)),
+                        .width(Length::Fill)
+                        .padding(8)
+                        .on_press(Message::DecrementPressed(resource)),
                 )
                 .push(
                     Button::new(
@@ -239,9 +238,9 @@ impl Application for Talos {
                             .horizontal_alignment(HorizontalAlignment::Center)
                             .size(16),
                     )
-                    .width(Length::Fill)
-                    .padding(8)
-                    .on_press(Message::IncrementPressed(resource)),
+                        .width(Length::Fill)
+                        .padding(8)
+                        .on_press(Message::IncrementPressed(resource)),
                 )
         };
 

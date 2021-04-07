@@ -1,12 +1,11 @@
 use itertools::Itertools;
-use rand::rngs::StdRng;
-use rand::{Rng, SeedableRng};
-use rand_distr::{Distribution, Normal, Standard, WeightedIndex};
+use rand::{Rng};
+use rand_distr::{Distribution, Standard, WeightedIndex};
 use std::fmt;
 
 pub struct System {
     planets: Planets,
-    system_anomolies: Vec<SystemAnomoly>,
+    anomalies: SystemAnomalies,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -31,16 +30,19 @@ struct Planets(pub Vec<Planet>);
 pub struct Planet {
     planet_type: PlanetType,
     planet_size: PlanetSize,
-    anomolies: PlanetAnomolies,
+    anomalies: PlanetAnomalies,
 }
 
-pub enum SystemAnomoly {}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SystemAnomaly {}
 
-struct PlanetAnomolies(pub Vec<PlanetAnomoly>);
+struct PlanetAnomalies(pub Vec<PlanetAnomaly>);
+
+struct SystemAnomalies(pub Vec<SystemAnomaly>);
 
 // nick: I don't know rust well enough to know if this is typical.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum PlanetAnomoly {
+pub enum PlanetAnomaly {
     MineralRich,
     CrystalRich,
     EnergyRich,
@@ -75,7 +77,13 @@ impl fmt::Display for PlanetSize {
     }
 }
 
-impl fmt::Display for PlanetAnomoly {
+impl fmt::Display for PlanetAnomaly {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl fmt::Display for SystemAnomaly {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
@@ -85,8 +93,8 @@ impl fmt::Display for Planet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "Planet(planet_type={}, planet_size={}, anomolies=[{}])",
-            self.planet_type, self.planet_size, self.anomolies
+            "Planet(planet_type={}, planet_size={}, anomalies=[{}])",
+            self.planet_type, self.planet_size, self.anomalies
         )
     }
 }
@@ -99,7 +107,7 @@ impl fmt::Display for Planets {
     }
 }
 
-impl fmt::Display for PlanetAnomolies {
+impl fmt::Display for PlanetAnomalies {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.0.iter().fold(Ok(()), |result, planet_anomoly| {
             result.and_then(|_| write!(f, "{}", planet_anomoly))
@@ -107,9 +115,17 @@ impl fmt::Display for PlanetAnomolies {
     }
 }
 
+impl fmt::Display for SystemAnomalies {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.0.iter().fold(Ok(()), |result, anomaly| {
+            result.and_then(|_| write!(f, "{}", anomaly))
+        })
+    }
+}
+
 impl fmt::Display for System {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "System(planets=[{}])", self.planets)
+        write!(f, "System(planets=[{}] system_anomalies=[{}])", self.planets, self.anomalies)
     }
 }
 
@@ -135,13 +151,14 @@ pub fn home_system() -> System {
     let planets = Planets(vec![Planet {
         planet_type: PlanetType::Standard,
         planet_size: PlanetSize::Large,
-        anomolies: PlanetAnomolies(Vec::new()),
+        anomalies: PlanetAnomalies(Vec::new()),
     }]);
-    let system_anomolies = Vec::new();
+
+    let anomalies: Vec<SystemAnomaly> = Vec::new();
 
     return System {
-        planets: planets,
-        system_anomolies: system_anomolies,
+        planets,
+        anomalies: SystemAnomalies(anomalies),
     };
 }
 
@@ -172,17 +189,17 @@ impl Distribution<PlanetSize> for Standard {
     }
 }
 
-impl Distribution<PlanetAnomoly> for Standard {
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> PlanetAnomoly {
+impl Distribution<PlanetAnomaly> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> PlanetAnomaly {
         let weights = [10, 10, 10, 10, 1, 1];
         let dist = WeightedIndex::new(&weights).unwrap();
         match dist.sample(rng) {
-            0 => PlanetAnomoly::MineralRich,
-            1 => PlanetAnomoly::CrystalRich,
-            2 => PlanetAnomoly::EnergyRich,
-            3 => PlanetAnomoly::TribalCiv,
-            4 => PlanetAnomoly::AdvancedCiv,
-            _ => PlanetAnomoly::NuclearWasteLand,
+            0 => PlanetAnomaly::MineralRich,
+            1 => PlanetAnomaly::CrystalRich,
+            2 => PlanetAnomaly::EnergyRich,
+            3 => PlanetAnomaly::TribalCiv,
+            4 => PlanetAnomaly::AdvancedCiv,
+            _ => PlanetAnomaly::NuclearWasteLand,
         }
     }
 }
@@ -193,7 +210,7 @@ impl Distribution<System> for Standard {
         let planets = ComplexPlanet.sample_iter(rng).take(planet_count).collect();
         System {
             planets: Planets(planets),
-            system_anomolies: Vec::new(),
+            anomalies: SystemAnomalies(Vec::new()),
         }
     }
 }
@@ -205,21 +222,22 @@ impl Distribution<Planet> for ComplexPlanet {
         let planet_type: PlanetType = rng.gen();
         let planet_size: PlanetSize = rng.gen();
 
-        // nick: A planet will have either 0 or 1 anomoly twice as often as it has 2 and very rarely will have 3.
-        let anomoly_count_weights = [500, 500, 250, 1];
-        let anomoly_count_dist = WeightedIndex::new(&anomoly_count_weights).unwrap();
-        let anomoly_count = anomoly_count_dist.sample(rng);
+        // nick: A planet will have either 0 or 1 anomaly twice as often as it has 2 and very rarely will have 3.
+        let anomaly_count_weights = [500, 500, 250, 1];
+        let anomaly_count_dist = WeightedIndex::new(&anomaly_count_weights).unwrap();
+        let anomaly_count = anomaly_count_dist.sample(rng);
 
-        let mut anomolies: Vec<PlanetAnomoly> =
-            Standard.sample_iter(rng).take(anomoly_count).collect();
-        // Anomolies should be unique.
-        // TODO: Remove anomolies that conflict with each other.
-        anomolies = anomolies.into_iter().unique().collect();
+        let mut anomalies: Vec<PlanetAnomaly> =
+            Standard.sample_iter(rng).take(anomaly_count).collect();
+
+        // Anomalies should be unique.
+        // TODO: Remove anomalies that conflict with each other.
+        anomalies = anomalies.into_iter().unique().collect();
 
         Planet {
-            planet_type: planet_type,
-            planet_size: planet_size,
-            anomolies: PlanetAnomolies(anomolies),
+            planet_type,
+            planet_size,
+            anomalies: PlanetAnomalies(anomalies),
         }
     }
 }
